@@ -1,13 +1,15 @@
+
 import React, { useState } from 'react';
 import { useData } from '../services/DataManager';
 import { formatCurrency, generateId, formatDate } from '../utils';
 import { Plus, Trash2 } from 'lucide-react';
 
 const Expenses: React.FC = () => {
-  const { expenses, addExpense } = useData();
+  const { expenses, suppliers, addExpense } = useData();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
+    supplier: '',
     description: '',
     amount: '',
     category: 'Geral'
@@ -20,6 +22,7 @@ const Expenses: React.FC = () => {
     addExpense({
       id: generateId(),
       date: formData.date,
+      supplier: formData.supplier || undefined,
       description: formData.description,
       amount: parseFloat(formData.amount),
       category: formData.category
@@ -27,6 +30,7 @@ const Expenses: React.FC = () => {
 
     setFormData({
       date: new Date().toISOString().split('T')[0],
+      supplier: '',
       description: '',
       amount: '',
       category: 'Geral'
@@ -60,6 +64,21 @@ const Expenses: React.FC = () => {
                 onChange={(e) => setFormData({...formData, date: e.target.value})}
               />
             </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Fornecedor (Opcional)</label>
+              <select 
+                className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-red-500 outline-none bg-white"
+                value={formData.supplier}
+                onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+              >
+                <option value="">Outro / Sem cadastro</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
               <input 
@@ -71,6 +90,23 @@ const Expenses: React.FC = () => {
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
               />
             </div>
+
+            <div className="md:col-span-1">
+               <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
+               <select
+                 className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-red-500 outline-none bg-white"
+                 value={formData.category}
+                 onChange={(e) => setFormData({...formData, category: e.target.value})}
+               >
+                 <option value="Geral">Geral</option>
+                 <option value="Materiais">Materiais</option>
+                 <option value="Limpeza">Limpeza</option>
+                 <option value="Pessoal">Pessoal</option>
+                 <option value="Logística">Logística</option>
+                 <option value="Outros">Outros</option>
+               </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Valor (R$)</label>
               <input 
@@ -83,7 +119,8 @@ const Expenses: React.FC = () => {
                 onChange={(e) => setFormData({...formData, amount: e.target.value})}
               />
             </div>
-            <div className="md:col-span-4 flex justify-end space-x-2 mt-2">
+            
+            <div className="md:col-span-2 flex justify-end space-x-2">
               <button 
                 type="button"
                 onClick={() => setIsFormOpen(false)}
@@ -107,6 +144,7 @@ const Expenses: React.FC = () => {
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Data</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fornecedor</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Descrição</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Categoria</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Valor</th>
@@ -117,7 +155,10 @@ const Expenses: React.FC = () => {
             {expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((expense) => (
               <tr key={expense.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4 text-sm text-slate-700">{formatDate(expense.date)}</td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-800">{expense.description}</td>
+                <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                    {expense.supplier || '-'}
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-800">{expense.description}</td>
                 <td className="px-6 py-4 text-sm text-slate-500">
                    <span className="px-2 py-1 bg-slate-100 rounded-full text-xs font-medium">{expense.category}</span>
                 </td>

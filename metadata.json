@@ -1,0 +1,5 @@
+{
+  "name": "BarEvent Manager",
+  "description": "A comprehensive management system for bar events, tracking inventory, sales, expenses, and financial balance based on Excel workflows.",
+  "requestFramePermissions": []
+}

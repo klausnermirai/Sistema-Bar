@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, DollarSign, Package, TrendingUp, Settings, Beer, Tag, Truck, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, DollarSign, Package, TrendingUp, Settings, Beer, Tag, Truck, LogOut, ArrowLeftRight } from 'lucide-react';
 import { useData } from '../services/DataManager';
 
 interface SidebarProps {
@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const { logout, currentUser } = useData();
+  const { logout, currentUser, currentEvent, exitEvent } = useData();
 
   const menuItems = [
     { id: 'dashboard', label: 'Balanço Geral', icon: LayoutDashboard },
@@ -23,14 +23,23 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <div className="w-64 bg-slate-900 text-white h-screen flex-shrink-0 flex flex-col fixed left-0 top-0 z-50">
-      <div className="p-6 flex items-center space-x-3 border-b border-slate-700">
-        <div className="bg-emerald-500 p-2 rounded-lg">
-           <Beer size={24} className="text-white" />
+      <div className="p-6 border-b border-slate-700">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="bg-emerald-500 p-2 rounded-lg">
+            <Beer size={24} className="text-white" />
+          </div>
+          <div className="overflow-hidden">
+            <h1 className="text-lg font-bold tracking-wider truncate">{currentEvent?.name || 'BAR'}</h1>
+            <p className="text-xs text-slate-400">Olá, {currentUser?.name.split(' ')[0]}</p>
+          </div>
         </div>
-        <div>
-           <h1 className="text-xl font-bold tracking-wider">BAR 2025</h1>
-           <p className="text-xs text-slate-400">Olá, {currentUser?.name.split(' ')[0]}</p>
-        </div>
+        <button 
+          onClick={exitEvent}
+          className="w-full text-xs flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 py-2 rounded text-slate-300 transition-colors"
+        >
+          <ArrowLeftRight size={12} />
+          <span>Trocar Evento</span>
+        </button>
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">

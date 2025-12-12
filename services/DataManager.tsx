@@ -1,29 +1,46 @@
 
 import React, { createContext, useContext, useState } from 'react';
-import { Product, Purchase, SaleRecord, Expense, InventoryCheck, Supplier, User } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_SALES, INITIAL_EXPENSES, INITIAL_PURCHASES, INITIAL_SUPPLIERS, INITIAL_USERS } from '../constants';
+import { Product, Purchase, SaleRecord, Expense, InventoryCheck, Supplier, User, Event } from '../types';
+import { INITIAL_PRODUCTS, INITIAL_SALES, INITIAL_EXPENSES, INITIAL_PURCHASES, INITIAL_SUPPLIERS, INITIAL_USERS, INITIAL_EVENTS } from '../constants';
 
 interface DataContextType {
+  // Global Data
   products: Product[];
+  suppliers: Supplier[];
+  users: User[];
+  events: Event[];
+  
+  // Scoped Data (Filtered by Current Event)
   purchases: Purchase[];
   sales: SaleRecord[];
   expenses: Expense[];
   inventoryChecks: InventoryCheck[];
-  suppliers: Supplier[];
-  users: User[];
-  currentUser: User | null;
   
-  // Data Actions
+  // State
+  currentUser: User | null;
+  currentEvent: Event | null;
+  
+  // Global Actions
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
-  addPurchase: (purchase: Purchase) => void;
-  addSale: (sale: SaleRecord) => void;
-  addExpense: (expense: Expense) => void;
   addSupplier: (supplier: Supplier) => void;
   updateSupplier: (supplier: Supplier) => void;
   deleteSupplier: (id: string) => void;
-  updateInventoryCheck: (check: InventoryCheck) => void;
+  
+  // Event Actions
+  selectEvent: (eventId: string) => void;
+  addEvent: (event: Event) => void;
+  updateEvent: (event: Event) => void;
+  deleteEvent: (id: string) => void;
+  exitEvent: () => void;
+
+  // Scoped Actions (Automatically attaches currentEvent ID)
+  addPurchase: (purchase: Omit<Purchase, 'eventId'>) => void;
+  addSale: (sale: Omit<SaleRecord, 'eventId'>) => void;
+  addExpense: (expense: Omit<Expense, 'eventId'>) => void;
+  updateInventoryCheck: (check: Omit<InventoryCheck, 'eventId'>) => void;
+  
   getSummary: () => { totalRevenue: number; totalExpenses: number; totalPurchases: number; netResult: number };
   
   // Auth Actions
@@ -38,15 +55,30 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [purchases, setPurchases] = useState<Purchase[]>(INITIAL_PURCHASES);
-  const [sales, setSales] = useState<SaleRecord[]>(INITIAL_SALES);
-  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
-  const [inventoryChecks, setInventoryChecks] = useState<InventoryCheck[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
   
-  // Auth State
+  // All transactions (stored together, filtered on export)
+  const [allPurchases, setAllPurchases] = useState<Purchase[]>(INITIAL_PURCHASES);
+  const [allSales, setAllSales] = useState<SaleRecord[]>(INITIAL_SALES);
+  const [allExpenses, setAllExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [allInventoryChecks, setAllInventoryChecks] = useState<InventoryCheck[]>([]);
+  
+  // Auth & Event State
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  
+  const [events, setEvents] = useState<Event[]>(INITIAL_EVENTS);
+  const [currentEventId, setCurrentEventId] = useState<string | null>(null);
+
+  // Derived State (Helpers)
+  const currentEvent = events.find(e => e.id === currentEventId) || null;
+
+  const purchases = allPurchases.filter(p => p.eventId === currentEventId);
+  const sales = allSales.filter(s => s.eventId === currentEventId);
+  const expenses = allExpenses.filter(e => e.eventId === currentEventId);
+  const inventoryChecks = allInventoryChecks.filter(i => i.eventId === currentEventId);
+
+  // --- ACTIONS ---
 
   const addProduct = (product: Product) => setProducts([...products, product]);
   
@@ -58,10 +90,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProducts(products.filter(p => p.id !== id));
   };
 
-  const addPurchase = (purchase: Purchase) => setPurchases([...purchases, purchase]);
-  const addSale = (sale: SaleRecord) => setSales([...sales, sale]);
-  const addExpense = (expense: Expense) => setExpenses([...expenses, expense]);
-  
   const addSupplier = (supplier: Supplier) => setSuppliers([...suppliers, supplier]);
   
   const updateSupplier = (updatedSupplier: Supplier) => {
@@ -78,10 +106,45 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSuppliers(suppliers.filter(s => s.id !== id));
   };
 
-  const updateInventoryCheck = (check: InventoryCheck) => {
-    setInventoryChecks(prev => {
-      const existing = prev.filter(p => p.productId !== check.productId);
-      return [...existing, check];
+  // --- EVENT MANAGEMENT ---
+  const selectEvent = (eventId: string) => setCurrentEventId(eventId);
+  const exitEvent = () => setCurrentEventId(null);
+  
+  const addEvent = (event: Event) => setEvents([...events, event]);
+  const updateEvent = (event: Event) => setEvents(events.map(e => e.id === event.id ? event : e));
+  const deleteEvent = (id: string) => {
+    if(currentEventId === id) setCurrentEventId(null);
+    setEvents(events.filter(e => e.id !== id));
+    // Optional: Cleanup data associated with event
+    setAllSales(prev => prev.filter(i => i.eventId !== id));
+    setAllPurchases(prev => prev.filter(i => i.eventId !== id));
+    setAllExpenses(prev => prev.filter(i => i.eventId !== id));
+    setAllInventoryChecks(prev => prev.filter(i => i.eventId !== id));
+  };
+
+  // --- SCOPED TRANSACTION ACTIONS ---
+  // Note: We cast inputs to Omit<T, 'eventId'> so components don't worry about IDs
+  
+  const addPurchase = (purchase: Omit<Purchase, 'eventId'>) => {
+    if (!currentEventId) return;
+    setAllPurchases([...allPurchases, { ...purchase, eventId: currentEventId }]);
+  };
+
+  const addSale = (sale: Omit<SaleRecord, 'eventId'>) => {
+    if (!currentEventId) return;
+    setAllSales([...allSales, { ...sale, eventId: currentEventId }]);
+  };
+
+  const addExpense = (expense: Omit<Expense, 'eventId'>) => {
+    if (!currentEventId) return;
+    setAllExpenses([...allExpenses, { ...expense, eventId: currentEventId }]);
+  };
+
+  const updateInventoryCheck = (check: Omit<InventoryCheck, 'eventId'>) => {
+    if (!currentEventId) return;
+    setAllInventoryChecks(prev => {
+      const existing = prev.filter(p => !(p.productId === check.productId && p.eventId === currentEventId));
+      return [...existing, { ...check, eventId: currentEventId }];
     });
   };
 
@@ -106,13 +169,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setCurrentUser(null);
+    setCurrentEventId(null);
   };
 
   const addUser = (user: User) => setUsers([...users, user]);
   
   const updateUser = (updatedUser: User) => {
     setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-    // If updating current user, update session
     if (currentUser && currentUser.id === updatedUser.id) {
         setCurrentUser(updatedUser);
     }
@@ -125,12 +188,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{ 
-      products, purchases, sales, expenses, inventoryChecks, suppliers, users, currentUser,
+      products, suppliers, users, events,
+      purchases, sales, expenses, inventoryChecks,
+      currentUser, currentEvent,
       addProduct, updateProduct, deleteProduct, 
       addPurchase, addSale, addExpense, 
       addSupplier, updateSupplier, deleteSupplier,
       updateInventoryCheck, getSummary,
-      login, logout, addUser, updateUser, deleteUser
+      login, logout, addUser, updateUser, deleteUser,
+      selectEvent, addEvent, updateEvent, deleteEvent, exitEvent
     }}>
       {children}
     </DataContext.Provider>

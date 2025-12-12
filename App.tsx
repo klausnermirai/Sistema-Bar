@@ -11,13 +11,18 @@ import Products from './pages/Products';
 import Suppliers from './pages/Suppliers';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import EventSelection from './pages/EventSelection';
 
 const AppContent: React.FC = () => {
-  const { currentUser } = useData();
+  const { currentUser, currentEvent } = useData();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   if (!currentUser) {
     return <Login />;
+  }
+
+  if (!currentEvent) {
+    return <EventSelection />;
   }
 
   const renderContent = () => {

@@ -12,6 +12,13 @@ export interface User {
   role: 'admin' | 'user';
 }
 
+export interface Event {
+  id: string;
+  name: string;
+  date?: string;
+  status: 'active' | 'archived';
+}
+
 export interface Supplier {
   id: string;
   name: string;
@@ -32,6 +39,7 @@ export interface Product {
 
 export interface Purchase {
   id: string;
+  eventId: string; // Linked to specific event
   date: string;
   productId: string;
   supplierName: string; // The actual supplier for this specific purchase
@@ -42,6 +50,7 @@ export interface Purchase {
 
 export interface SaleRecord {
   id: string;
+  eventId: string; // Linked to specific event
   date: string;
   amountCash: number;
   amountPix: number;
@@ -51,6 +60,7 @@ export interface SaleRecord {
 
 export interface Expense {
   id: string;
+  eventId: string; // Linked to specific event
   date: string;
   supplier?: string; // Optional: Link to a registered supplier
   description: string;
@@ -60,6 +70,7 @@ export interface Expense {
 
 export interface InventoryCheck {
   productId: string;
+  eventId: string; // Linked to specific event
   currentStock: number; // Counted units
   lastUpdated: string;
 }

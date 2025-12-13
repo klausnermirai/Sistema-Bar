@@ -1,33 +1,86 @@
 
 import React, { useState } from 'react';
 import { useData } from '../services/DataManager';
-import { Beer, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Beer, Lock, User, Eye, EyeOff, Loader2, Wifi, WifiOff, AlertTriangle, RefreshCw } from 'lucide-react';
+import { INITIAL_USERS } from '../constants';
 
 const Login: React.FC = () => {
-  const { login } = useData();
+  const { login, isLoading: isDataLoading, connectionError, users, addUser } = useData();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(username, password);
-    if (!success) {
-      setError('Usuário ou senha inválidos');
+    setIsLoggingIn(true);
+    setError('');
+    
+    try {
+        const success = await login(username, password);
+        if (!success) {
+          setError('Usuário ou senha inválidos');
+        }
+    } catch (e) {
+        setError('Erro ao processar login');
+    } finally {
+        setIsLoggingIn(false);
     }
   };
 
+  const handleAutoSeed = async () => {
+    setIsSeeding(true);
+    try {
+        // Attempt to re-inject the admin user
+        await addUser(INITIAL_USERS[0]);
+        window.location.reload(); // Refresh to fetch new data
+    } catch (e) {
+        alert("Erro ao tentar criar usuário. Verifique as permissões SQL (RLS).");
+    } finally {
+        setIsSeeding(false);
+    }
+  };
+
+  if (isDataLoading) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+             <div className="text-white flex flex-col items-center">
+                 <Loader2 className="animate-spin mb-4" size={40} />
+                 <p>Carregando sistema...</p>
+             </div>
+        </div>
+      );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-8 animate-fade-in-down">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-8 animate-fade-in-down z-10">
         <div className="text-center">
           <div className="bg-emerald-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform -rotate-6">
             <Beer size={40} className="text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-slate-800">Bar Manager</h2>
+          <h2 className="text-3xl font-bold text-slate-800">Gestão de Bar</h2>
           <p className="text-slate-500 mt-2">Sistema de Gestão de Eventos</p>
         </div>
+
+        {/* WARNING: NO USERS FOUND */}
+        {!connectionError && users.length === 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 flex flex-col items-center text-center">
+                <AlertTriangle size={24} className="mb-2 text-amber-600"/>
+                <p className="font-bold mb-1">Nenhum usuário encontrado!</p>
+                <p className="mb-3 opacity-90">O banco de dados está conectado mas vazio. As políticas de segurança podem ter bloqueado a criação automática.</p>
+                <button 
+                    onClick={handleAutoSeed}
+                    disabled={isSeeding}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center"
+                >
+                    {isSeeding ? <Loader2 className="animate-spin mr-2" size={12}/> : <RefreshCw className="mr-2" size={12} />}
+                    Tentar Criar Admin Agora
+                </button>
+            </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
@@ -82,16 +135,36 @@ const Login: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200"
+            disabled={isLoggingIn || !!connectionError}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Entrar no Sistema
+            {isLoggingIn ? (
+                <>
+                    <Loader2 className="animate-spin mr-2" size={20}/>
+                    Verificando...
+                </>
+            ) : "Entrar no Sistema"}
           </button>
         </form>
         
-        <p className="text-center text-xs text-slate-400 mt-8">
-          &copy; 2025 Bar Event Manager. Todos os direitos reservados.
-        </p>
+        <div className="border-t border-slate-100 pt-4 flex justify-center">
+            {connectionError ? (
+                <div className="flex items-center text-red-500 text-xs font-medium">
+                    <WifiOff size={14} className="mr-1.5" />
+                    <span>Desconectado: {connectionError}</span>
+                </div>
+            ) : (
+                <div className="flex items-center text-emerald-600 text-xs font-medium">
+                    <Wifi size={14} className="mr-1.5" />
+                    <span>Conectado (Usuários: {users.length})</span>
+                </div>
+            )}
+        </div>
       </div>
+      
+      <p className="absolute bottom-4 text-center text-xs text-slate-500 opacity-50">
+        &copy; 2025 Gestão de Bar.
+      </p>
     </div>
   );
 };

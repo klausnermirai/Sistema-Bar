@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Sidebar from './Sidebar';
 
@@ -11,8 +12,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="flex-1 ml-64 p-8 overflow-y-auto h-screen">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 ml-64 p-8 overflow-y-auto h-screen print:ml-0 print:p-0 print:h-auto print:overflow-visible">
+        <div className="max-w-7xl mx-auto print:max-w-none">
           {children}
         </div>
       </main>

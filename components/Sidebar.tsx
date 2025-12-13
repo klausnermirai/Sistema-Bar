@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   ];
 
   return (
-    <div className="w-64 bg-slate-900 text-white h-screen flex-shrink-0 flex flex-col fixed left-0 top-0 z-50">
+    <div className="w-64 bg-slate-900 text-white h-screen flex-shrink-0 flex flex-col fixed left-0 top-0 z-50 print:hidden">
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center space-x-3 mb-4">
           <div className="bg-emerald-500 p-2 rounded-lg">
